@@ -9,8 +9,7 @@ from aiogram.types import (
 
 # ================== НАСТРОЙКИ ==================
 BOT_TOKEN = "9103844726:AAFER4K0rjPQsP4FDBHYiicJpP6Row87Ec8"
-ADMIN_ID = 8915050007  # Твой числовой ID
-# ВАЖНО: сюда нужно вставить URL, где будет лежать твой сайт (GitHub Pages / Vercel / etc.)
+ADMIN_ID = 8915050007
 MINI_APP_URL = "https://fasedqw.github.io/IceShop2/"
 # ===============================================
 
@@ -20,7 +19,7 @@ dp = Dispatcher()
 
 def get_main_keyboard():
     web_app = WebAppInfo(url=MINI_APP_URL)
-    btn = KeyboardButton(text="🛒 Открыть каталог Ice Shop", web_app=web_app)
+    btn = KeyboardButton(text="🛒 Каталог Ice Shop", web_app=web_app)
     return ReplyKeyboardMarkup(keyboard=[[btn]], resize_keyboard=True)
 
 
@@ -28,8 +27,8 @@ def get_main_keyboard():
 async def cmd_start(message: types.Message):
     await message.answer(
         "👋 <b>Добро пожаловать в Ice Shop!</b>\n\n"
-        "🍦 У нас самое вкусное мороженое и холодные напитки.\n"
-        "Нажми кнопку ниже, чтобы открыть каталог и оформить заказ:",
+        "🍦 У нас самое вкусное мороженое.\n"
+        "Нажми кнопку ниже, чтобы открыть каталог:",
         reply_markup=get_main_keyboard(),
         parse_mode="HTML"
     )
@@ -37,20 +36,18 @@ async def cmd_start(message: types.Message):
 
 @dp.message(F.text)
 async def handle_text(message: types.Message):
-    """Обычные текстовые сообщения — просто показываем кнопку каталога."""
     await message.answer(
-        "🛍 Чтобы посмотреть товары, нажми кнопку ниже:",
+        "🛍 Нажми кнопку, чтобы открыть каталог:",
         reply_markup=get_main_keyboard()
     )
 
 
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message):
-    """Получаем данные из Mini App (оформленный заказ)."""
     try:
         order_data = json.loads(message.web_app_data.data)
     except json.JSONDecodeError:
-        await message.answer("❌ Ошибка: не удалось прочитать данные заказа.")
+        await message.answer("❌ Ошибка чтения данных заказа.")
         return
 
     if order_data.get("action") != "order":
@@ -60,7 +57,6 @@ async def handle_webapp_data(message: types.Message):
 
 
 async def send_order_to_admin(order_data: dict, user: types.User, message: types.Message):
-    """Формируем красивое сообщение с заказом и отправляем админу."""
     items = order_data.get("items", [])
     items_list = "\n".join([f"• {it['name']} × {it.get('qty', 1)} — {it['price']} ₽" for it in items])
 
@@ -69,8 +65,7 @@ async def send_order_to_admin(order_data: dict, user: types.User, message: types
 
     text = (
         f"📦 <b>Новый заказ в Ice Shop!</b>\n\n"
-        f"👤 <b>Клиент:</b> {user.full_name} "
-        f"(@{user.username or 'нет юзернейма'})\n"
+        f"👤 <b>Клиент:</b> {user.full_name} (@{user.username or 'нет юзернейма'})\n"
         f"🆔 <code>{user.id}</code>\n\n"
         f"🛍 <b>Товары:</b>\n{items_list or '—'}\n\n"
         f"💰 <b>Итого:</b> <b>{total} ₽</b>\n\n"
@@ -81,23 +76,21 @@ async def send_order_to_admin(order_data: dict, user: types.User, message: types
         f"💬 Комментарий: {contact.get('comment', '—')}"
     )
 
-    # Кнопки для админа
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Принять", callback_data="order_accept"),
          InlineKeyboardButton(text="❌ Отклонить", callback_data="order_reject")],
-        [InlineKeyboardButton(text="💬 Написать клиенту",
-                              url=f"tg://user?id={user.id}")]
+        [InlineKeyboardButton(text="💬 Написать клиенту", url=f"tg://user?id={user.id}")]
     ])
 
     try:
         await bot.send_message(chat_id=ADMIN_ID, text=text, parse_mode="HTML", reply_markup=kb)
         await message.answer(
             "✅ <b>Заказ принят!</b>\n"
-            "Менеджер свяжется с тобой в течение 10 минут для подтверждения. 🚀",
+            "Менеджер свяжется с тобой в течение 10 минут. 🚀",
             parse_mode="HTML"
         )
     except Exception as e:
-        print(f"Не удалось отправить заказ админу: {e}")
+        print(f"Ошибка: {e}")
         await message.answer("⚠️ Произошла ошибка. Попробуй позже.")
 
 
@@ -105,11 +98,15 @@ async def send_order_to_admin(order_data: dict, user: types.User, message: types
 async def order_callbacks(callback: types.CallbackQuery):
     await callback.answer()
     if callback.data == "order_accept":
-        await callback.message.edit_text(callback.message.text + "\n\n✅ <b>Статус: Принят</b>",
-                                         parse_mode="HTML")
+        await callback.message.edit_text(
+            callback.message.text + "\n\n✅ <b>Статус: Принят</b>",
+            parse_mode="HTML"
+        )
     else:
-        await callback.message.edit_text(callback.message.text + "\n\n❌ <b>Статус: Отклонён</b>",
-                                         parse_mode="HTML")
+        await callback.message.edit_text(
+            callback.message.text + "\n\n❌ <b>Статус: Отклонён</b>",
+            parse_mode="HTML"
+        )
 
 
 async def main():
