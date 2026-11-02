@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ice Shop</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--tg-theme-bg-color, #f5f7fa);
+    color: var(--tg-theme-text-color, #1a1a1a);
+    padding: 16px;
+    padding-bottom: 100px;
+  }
+  .header {
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-size: 28px;
+    background: linear-gradient(135deg, #4fc3f7, #81d4fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: var(--tg-theme-hint-color, #888); margin-top: 4px; font-size: 14px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .card {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s;
+  }
+  .card:active { transform: scale(0.97); }
+  .card .emoji {
+    font-size: 56px;
+    text-align: center;
+    margin: 8px 0;
+  }
+  .card .name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .card .desc {
+    font-size: 12px;
+    color: var(--tg-theme-hint-color, #888);
+    margin-bottom: 8px;
+    flex-grow: 1;
+  }
+  .card .bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+  }
+  .price { font-weight: 700; font-size: 16px; color: var(--tg-theme-button-color, #4fc3f7); }
+  .add-btn {
+    background: var(--tg-theme-button-color, #4fc3f7);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--tg-theme-button-color, #4fc3f7);
+    border-radius: 10px;
+    padding: 4px 8px;
+    color: #fff;
+  }
+  .qty-control button {
+    background: none; border: none; color: #fff;
+    font-size: 18px; font-weight: 700; cursor: pointer;
+    width: 22px; height: 22px;
+  }
+  .qty-control span { font-weight: 600; min-width: 16px; text-align: center; }
+
+  .cart-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    background: var(--tg-theme-button-color, #4fc3f7);
+    color: #fff;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(79, 195, 247, 0.4);
+    cursor: pointer;
+    z-index: 100;
+  }
+  .cart-bar.show { display: flex; }
+
+  /* Модалка оформления */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: flex-end;
+    z-index: 200;
+  }
+  .modal.show { display: flex; }
+  .modal-content {
+    background: var(--tg-theme-bg-color, #fff);
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal h2 { margin-bottom: 12px; font-size: 20px; }
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+    font-size: 14px;
+  }
+  .total {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--tg-theme-hint-color, #888);
+    margin-bottom: 4px;
+  }
+  .form-group input, .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--tg-theme-hint-color, #ddd);
+    border-radius: 10px;
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    color: var(--tg-theme-text-color, #1a1a1a);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .form-group textarea { resize: none; height: 60px; }
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--tg-theme-button-color, #4fc3f7);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    float: right;
+    cursor: pointer;
+    color: var(--tg-theme-hint-color, #888);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍦 Ice Shop</h1>
+  <p>Свежее мороженое с доставкой</p>
+</div>
+
+<div class="grid" id="products"></div>
+
+<div class="cart-bar" id="cartBar" onclick="openCheckout()">
+  <span>🛒 Корзина (<span id="cartCount">0</span>)</span>
+  <span><span id="cartTotal">0</span> ₽</span>
+</div>
+
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeCheckout()">✕</button>
+    <h2>Оформление заказа</h2>
+    <div id="cartItems"></div>
+    <div class="total">
+      <span>Итого:</span>
+      <span><span id="modalTotal">0</span> ₽</span>
+    </div>
+    <form id="orderForm">
+      <div class="form-group">
+        <label>📞 Телефон *</label>
+        <input type="tel" id="phone" placeholder="+7 999 123 45 67" required>
+      </div>
+      <div class="form-group">
+        <label>📍 Адрес доставки *</label>
+        <input type="text" id="address" placeholder="ул. Ленина, д. 1" required>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <div class="form-group" style="flex:1;">
+          <label>🚪 Подъезд</label>
+          <input type="text" id="entrance" placeholder="1">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>🏠 Этаж / кв.</label>
+          <input type="text" id="floorApt" placeholder="3 / 25">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>💬 Комментарий</label>
+        <textarea id="comment" placeholder="Позвонить за 5 минут..."></textarea>
+      </div>
+      <button type="submit" class="submit-btn">Оформить заказ 🚀</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  // ====== ТОВАРЫ ======
+  const products = [
+    { id: 1, emoji: "🍦", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
+    { id: 2, emoji: "🍫", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
+    { id: 3, emoji: "🍓", name: "Клубничное", desc: "С кусочками ягод", price: 150 },
+    { id: 4, emoji: "🥭", name: "Манго-маракуйя", desc: "Тропический микс", price: 170 },
+    { id: 5, emoji: "🍪", name: "Cookie Dough", desc: "С кусочками печенья", price: 180 },
+    { id: 6, emoji: "🥥", name: "Кокос-миндаль", desc: "Веганское, без молока", price: 190 },
+    { id: 7, emoji: "🧋", name: "Бабл-ти", desc: "Холодный чай с тапиокой", price: 220 },
+    { id: 8, emoji: "🍧", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 130 }
+  ];
+
+  let cart = {};
+
+  // ====== РЕНДЕР ТОВАРОВ ======
+  function renderProducts() {
+    const grid = document.getElementById("products");
+    grid.innerHTML = products.map(p => {
+      const qty = cart[p.id]?.qty || 0;
+      const controls = qty === 0
+        ? `<button class="add-btn" onclick="addToCart(${p.id})">+ В корзину</button>`
+        : `<div class="qty-control">
+             <button onclick="changeQty(${p.id}, -1)">−</button>
+             <span>${qty}</span>
+             <button onclick="changeQty(${p.id}, 1)">+</button>
+           </div>`;
+      return `
+        <div class="card">
+          <div class="emoji">${p.emoji}</div>
+          <div class="name">${p.name}</div>
+          <div class="desc">${p.desc}</div>
+          <div class="bottom">
+            <div class="price">${p.price} ₽</div>
+            ${controls}
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ====== КОРЗИНА ======
+  function addToCart(id) {
+    const p = products.find(x => x.id === id);
+    cart[id] = { ...p, qty: 1 };
+    updateCart();
+    tg.HapticFeedback.impactOccurred("light");
+  }
+  function changeQty(id, delta) {
+    if (!cart[id]) return;
+    cart[id].qty += delta;
+    if (cart[id].qty <= 0) delete cart[id];
+    updateCart();
+    tg.HapticFeedback.impactOccurred("light");
+  }
+  function updateCart() {
+    const items = Object.values(cart);
+    const count = items.reduce((s, i) => s + i.qty, 0);
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    document.getElementById("cartCount").textContent = count;
+    document.getElementById("cartTotal").textContent = total;
+    document.getElementById("cartBar").classList.toggle("show", count > 0);
+    renderProducts();
+  }
+
+  // ====== ОФОРМЛЕНИЕ ======
+  function openCheckout() {
+    const items = Object.values(cart);
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    document.getElementById("cartItems").innerHTML = items.map(i =>
+      `<div class="cart-item">
+         <span>${i.emoji} ${i.name} × ${i.qty}</span>
+         <span>${i.price * i.qty} ₽</span>
+       </div>`).join("");
+    document.getElementById("modalTotal").textContent = total;
+    document.getElementById("checkoutModal").classList.add("show");
+  }
+  function closeCheckout() {
+    document.getElementById("checkoutModal").classList.remove("show");
+  }
+
+  document.getElementById("orderForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const items = Object.values(cart).map(i => ({
+      id: i.id, name: i.name, price: i.price, qty: i.qty
+    }));
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    const payload = {
+      action: "order",
+      items: items,
+      total: total,
+      contact: {
+        phone: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        entrance: document.getElementById("entrance").value,
+        floorApt: document.getElementById("floorApt").value,
+        comment: document.getElementById("comment").value
+      }
+    };
+    tg.sendData(JSON.stringify(payload));
+    tg.HapticFeedback.notificationOccurred("success");
+    tg.close();
+  });
+
+  renderProducts();
+</script>
+</body>
+</html>
