@@ -2,15 +2,15 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ice Shop</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--tg-theme-bg-color, #f5f7fa);
-    color: var(--tg-theme-text-color, #1a1a1a);
+    background: #f5f7fa;
+    color: #1a1a1a;
     padding: 16px;
     padding-bottom: 100px;
   }
@@ -21,12 +21,9 @@
   }
   .header h1 {
     font-size: 28px;
-    background: linear-gradient(135deg, #4fc3f7, #81d4fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #4fc3f7;
   }
-  .header p { color: var(--tg-theme-hint-color, #888); margin-top: 4px; font-size: 14px; }
+  .header p { color: #888; margin-top: 4px; font-size: 14px; }
 
   .grid {
     display: grid;
@@ -34,15 +31,13 @@
     gap: 12px;
   }
   .card {
-    background: var(--tg-theme-secondary-bg-color, #fff);
+    background: #fff;
     border-radius: 16px;
     padding: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
-    transition: transform 0.15s;
   }
-  .card:active { transform: scale(0.97); }
   .card .emoji {
     font-size: 56px;
     text-align: center;
@@ -55,7 +50,7 @@
   }
   .card .desc {
     font-size: 12px;
-    color: var(--tg-theme-hint-color, #888);
+    color: #888;
     margin-bottom: 8px;
     flex-grow: 1;
   }
@@ -63,11 +58,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: auto;
   }
-  .price { font-weight: 700; font-size: 16px; color: var(--tg-theme-button-color, #4fc3f7); }
+  .price { font-weight: 700; font-size: 16px; color: #4fc3f7; }
   .add-btn {
-    background: var(--tg-theme-button-color, #4fc3f7);
+    background: #4fc3f7;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -80,7 +74,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--tg-theme-button-color, #4fc3f7);
+    background: #4fc3f7;
     border-radius: 10px;
     padding: 4px 8px;
     color: #fff;
@@ -97,7 +91,7 @@
     bottom: 16px;
     left: 16px;
     right: 16px;
-    background: var(--tg-theme-button-color, #4fc3f7);
+    background: #4fc3f7;
     color: #fff;
     border-radius: 14px;
     padding: 14px 18px;
@@ -111,7 +105,6 @@
   }
   .cart-bar.show { display: flex; }
 
-  /* Модалка оформления */
   .modal {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
@@ -121,21 +114,19 @@
   }
   .modal.show { display: flex; }
   .modal-content {
-    background: var(--tg-theme-bg-color, #fff);
+    background: #fff;
     width: 100%;
     border-radius: 20px 20px 0 0;
     padding: 20px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideUp 0.3s ease;
   }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   .modal h2 { margin-bottom: 12px; font-size: 20px; }
   .cart-item {
     display: flex;
     justify-content: space-between;
     padding: 10px 0;
-    border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+    border-bottom: 1px solid #eee;
     font-size: 14px;
   }
   .total {
@@ -149,16 +140,16 @@
   .form-group label {
     display: block;
     font-size: 13px;
-    color: var(--tg-theme-hint-color, #888);
+    color: #888;
     margin-bottom: 4px;
   }
   .form-group input, .form-group textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid var(--tg-theme-hint-color, #ddd);
+    border: 1px solid #ddd;
     border-radius: 10px;
-    background: var(--tg-theme-secondary-bg-color, #fff);
-    color: var(--tg-theme-text-color, #1a1a1a);
+    background: #fff;
+    color: #1a1a1a;
     font-size: 15px;
     font-family: inherit;
   }
@@ -166,7 +157,7 @@
   .submit-btn {
     width: 100%;
     padding: 14px;
-    background: var(--tg-theme-button-color, #4fc3f7);
+    background: #4fc3f7;
     color: #fff;
     border: none;
     border-radius: 12px;
@@ -181,7 +172,7 @@
     font-size: 24px;
     float: right;
     cursor: pointer;
-    color: var(--tg-theme-hint-color, #888);
+    color: #888;
   }
 </style>
 </head>
@@ -241,7 +232,6 @@
   tg.ready();
   tg.expand();
 
-  // ====== ТОВАРЫ ======
   const products = [
     { id: 1, emoji: "🍦", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
     { id: 2, emoji: "🍫", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
@@ -255,7 +245,6 @@
 
   let cart = {};
 
-  // ====== РЕНДЕР ТОВАРОВ ======
   function renderProducts() {
     const grid = document.getElementById("products");
     grid.innerHTML = products.map(p => {
@@ -280,19 +269,16 @@
     }).join("");
   }
 
-  // ====== КОРЗИНА ======
   function addToCart(id) {
     const p = products.find(x => x.id === id);
     cart[id] = { ...p, qty: 1 };
     updateCart();
-    tg.HapticFeedback.impactOccurred("light");
   }
   function changeQty(id, delta) {
     if (!cart[id]) return;
     cart[id].qty += delta;
     if (cart[id].qty <= 0) delete cart[id];
     updateCart();
-    tg.HapticFeedback.impactOccurred("light");
   }
   function updateCart() {
     const items = Object.values(cart);
@@ -304,7 +290,6 @@
     renderProducts();
   }
 
-  // ====== ОФОРМЛЕНИЕ ======
   function openCheckout() {
     const items = Object.values(cart);
     const total = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -339,7 +324,6 @@
       }
     };
     tg.sendData(JSON.stringify(payload));
-    tg.HapticFeedback.notificationOccurred("success");
     tg.close();
   });
 
