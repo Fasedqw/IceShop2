@@ -151,12 +151,22 @@
     margin: 10px 0;
     color: #888;
   }
+  .reset-btn {
+    background: #ff4444;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1 id="logo"> Ice Shop</h1>
+  <h1 id="logo">🍦 Ice Shop</h1>
   <p>Свежее мороженое с доставкой</p>
 </div>
 
@@ -200,7 +210,7 @@
         <label>💬 Комментарий</label>
         <textarea id="comment" placeholder="Позвонить за 5 минут..."></textarea>
       </div>
-      <button type="submit" class="submit-btn">Оформить заказ </button>
+      <button type="submit" class="submit-btn">Оформить заказ 🚀</button>
     </form>
   </div>
 </div>
@@ -244,6 +254,7 @@
       <div class="admin-panel">
         <h3>📦 Список товаров</h3>
         <div id="productList" class="product-list"></div>
+        <button class="reset-btn" onclick="resetProducts()">🔄 Сбросить к товарам по умолчанию</button>
       </div>
       
       <button class="submit-btn" onclick="exportProducts()" style="background:#2d2d44; color:#4fc3f7; border:1px solid #4fc3f7;">💾 Экспорт товаров (JSON)</button>
@@ -271,11 +282,19 @@
     { id: 8, img: "8.jpg", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 130 }
   ];
 
-  // Загрузка товаров
+  // Загрузка товаров с защитой от пустого списка
   let products = [];
   try {
     const saved = localStorage.getItem('iceShopProducts');
-    products = saved ? JSON.parse(saved) : defaultProducts;
+    if (saved) {
+      products = JSON.parse(saved);
+      // Если список пустой или не массив — используем default
+      if (!Array.isArray(products) || products.length === 0) {
+        products = defaultProducts;
+      }
+    } else {
+      products = defaultProducts;
+    }
   } catch (e) {
     products = defaultProducts;
   }
@@ -283,7 +302,7 @@
   let cart = {};
   let nextId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
 
-  // Проверка на админа
+  // Проверка на админа через URL
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('admin') === 'true') {
     const btn = document.createElement('button');
@@ -293,7 +312,7 @@
     document.body.appendChild(btn);
   }
 
-  // Секретный жест по логотипу
+  // Секретный жест по логотипу (5 кликов)
   let logoClicks = 0;
   let logoClickTimer = null;
   document.getElementById('logo').addEventListener('click', function() {
@@ -327,6 +346,11 @@
     const grid = document.getElementById("products");
     if (!grid) return;
     
+    if (products.length === 0) {
+      grid.innerHTML = '<p style="text-align:center; color:#888; grid-column:1/-1;">Товары не найдены. Войдите как админ, чтобы добавить товары.</p>';
+      return;
+    }
+    
     grid.innerHTML = products.map(p => {
       const qty = cart[p.id] ? cart[p.id].qty : 0;
       const controls = qty === 0
@@ -337,7 +361,7 @@
           '<button onclick="changeQty(' + p.id + ', 1)">+</button>' +
           '</div>';
       return '<div class="card">' +
-        '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '">' +
+        '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '" onerror="this.src=\'https://via.placeholder.com/140?text=' + encodeURIComponent(p.name) + '\'">' +
         '<div class="name">' + p.name + '</div>' +
         '<div class="desc">' + p.desc + '</div>' +
         '<div class="bottom">' +
@@ -376,7 +400,7 @@
     const total = items.reduce((s, i) => s + i.qty * i.price, 0);
     document.getElementById("cartItems").innerHTML = items.map(i =>
       '<div class="cart-item">' +
-      '<img src="' + (i.img.startsWith('data:') ? i.img : IMG_BASE + i.img) + '" alt="' + i.name + '">' +
+      '<img src="' + (i.img.startsWith('data:') ? i.img : IMG_BASE + i.img) + '" alt="' + i.name + '" onerror="this.src=\'https://via.placeholder.com/50?text=' + encodeURIComponent(i.name) + '\'">' +
       '<div class="cart-item-info"><b>' + i.name + '</b> × ' + i.qty + '</div>' +
       '<span>' + (i.price * i.qty) + ' ₽</span></div>'
     ).join("");
@@ -472,12 +496,26 @@
     }
   }
 
+  function resetProducts() {
+    if (confirm("Сбросить все товары к списку по умолчанию?")) {
+      products = JSON.parse(JSON.stringify(defaultProducts));
+      saveProducts();
+      renderProducts();
+      renderProductList();
+      alert("✅ Товары сброшены к списку по умолчанию!");
+    }
+  }
+
   function renderProductList() {
     const list = document.getElementById("productList");
     if (!list) return;
+    if (products.length === 0) {
+      list.innerHTML = '<p style="color:#888;">Нет товаров. Добавьте первый!</p>';
+      return;
+    }
     list.innerHTML = products.map(p =>
       '<div class="product-item">' +
-      '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '">' +
+      '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '" onerror="this.src=\'https://via.placeholder.com/50?text=' + encodeURIComponent(p.name) + '\'">' +
       '<div class="product-item-info">' +
       '<div class="name">' + p.name + '</div>' +
       '<div class="price">' + p.price + ' ₽</div>' +
