@@ -18,7 +18,7 @@
   .header h1 { font-size: 28px; color: #4fc3f7; cursor: pointer; user-select: none; }
   .header p { color: #888; margin-top: 4px; font-size: 14px; }
   
-  /* Скрытая кнопка админа - видна только если ?admin=true */
+  /* Кнопка админа создаётся через JS, стили здесь */
   .admin-btn {
     position: fixed;
     top: 16px;
@@ -31,9 +31,7 @@
     font-size: 13px;
     cursor: pointer;
     z-index: 50;
-    display: none; /* Скрыта по умолчанию */
   }
-  .admin-btn.show { display: block; }
   
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .card {
@@ -154,23 +152,166 @@
     margin: 10px 0;
     color: #888;
   }
-  .hint-text {
-    text-align: center;
-    color: #555;
-    font-size: 12px;
-    margin-top: 30px;
-    font-style: italic;
-  }
 </style>
 </head>
 <body>
 
-<!-- Кнопка админа - скрыта по умолчанию -->
-<button class="admin-btn" id="adminBtn" onclick="openAdmin()">⚙️ Админ</button>
+<!-- КНОПКА АДМИНА УДАЛЕНА ИЗ HTML - создаётся через JS -->
 
 <div class="header">
   <h1 id="logo">🍦 Ice Shop</h1>
   <p>Свежее мороженое с доставкой</p>
 </div>
 
-<div class="grid
+<div class="grid" id="products"></div>
+
+<div class="cart-bar" id="cartBar" onclick="openCheckout()">
+  <span>🛒 Корзина (<span id="cartCount">0</span>)</span>
+  <span><span id="cartTotal">0</span> ₽</span>
+</div>
+
+<!-- Модалка оформления заказа -->
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeCheckout()">✕</button>
+    <h2>Оформление заказа</h2>
+    <div id="cartItems"></div>
+    <div class="total">
+      <span>Итого:</span>
+      <span><span id="modalTotal">0</span> ₽</span>
+    </div>
+    <form id="orderForm">
+      <div class="form-group">
+        <label>📞 Телефон *</label>
+        <input type="tel" id="phone" placeholder="+7 999 123 45 67" required>
+      </div>
+      <div class="form-group">
+        <label>📍 Адрес доставки *</label>
+        <input type="text" id="address" placeholder="ул. Ленина, д. 1" required>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <div class="form-group" style="flex:1;">
+          <label>🚪 Подъезд</label>
+          <input type="text" id="entrance" placeholder="1">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>🏠 Этаж / кв.</label>
+          <input type="text" id="floorApt" placeholder="3 / 25">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>💬 Комментарий</label>
+        <textarea id="comment" placeholder="Позвонить за 5 минут..."></textarea>
+      </div>
+      <button type="submit" class="submit-btn">Оформить заказ 🚀</button>
+    </form>
+  </div>
+</div>
+
+<!-- Модалка админки -->
+<div class="modal" id="adminModal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeAdmin()">✕</button>
+    <h2>⚙️ Админ-панель</h2>
+    
+    <div id="adminLogin">
+      <div class="form-group">
+        <label>🔐 Пароль администратора</label>
+        <input type="password" id="adminPassword" placeholder="Введите пароль">
+      </div>
+      <button class="submit-btn" onclick="checkAdminPassword()">Войти</button>
+    </div>
+    
+    <div id="adminContent" style="display:none;">
+      <div class="admin-panel">
+        <h3>➕ Добавить товар</h3>
+        <div class="form-group">
+          <label>Название товара *</label>
+          <input type="text" id="newProductName" placeholder="Например: Ванильное">
+        </div>
+        <div class="form-group">
+          <label>Описание</label>
+          <input type="text" id="newProductDesc" placeholder="Краткое описание">
+        </div>
+        <div class="form-group">
+          <label>Цена (₽) *</label>
+          <input type="number" id="newProductPrice" placeholder="150">
+        </div>
+        <div class="form-group">
+          <label>📸 Фото товара</label>
+          <input type="file" id="newProductImage" accept="image/*" class="file-input">
+        </div>
+        <button class="submit-btn" onclick="addProduct()">Добавить товар</button>
+      </div>
+      
+      <div class="admin-panel">
+        <h3>📦 Список товаров</h3>
+        <div id="productList" class="product-list"></div>
+      </div>
+      
+      <button class="submit-btn" onclick="exportProducts()" style="background:#2d2d44; color:#4fc3f7; border:1px solid #4fc3f7;">💾 Экспорт товаров (JSON)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const ADMIN_PASSWORD = "admin123"; // ⚠️ ИЗМЕНИ ПАРОЛЬ!
+  const IMG_BASE = "https://github.com/Fasedqw/IceShop2/raw/main/images/";
+
+  // ===== СОЗДАНИЕ КНОПКИ АДМИНА ЧЕРЕЗ JS =====
+  function createAdminButton() {
+    // Проверяем, нет ли уже кнопки
+    if (document.getElementById('adminBtn')) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'adminBtn';
+    btn.className = 'admin-btn';
+    btn.textContent = '⚙️ Админ';
+    btn.onclick = openAdmin;
+    document.body.appendChild(btn);
+  }
+
+  // ===== ПРОВЕРКА: админ ли это? =====
+  const urlParams = new URLSearchParams(window.location.search);
+  const isAdminMode = urlParams.get('admin') === 'true';
+  
+  let logoClicks = 0;
+  let logoClickTimer = null;
+  
+  // Показываем кнопку если ?admin=true в URL
+  if (isAdminMode) {
+    createAdminButton();
+  }
+  
+  // Секретный жест: 5 кликов по логотипу за 2 секунды
+  document.getElementById('logo').addEventListener('click', function() {
+    logoClicks++;
+    clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClicks = 0; }, 2000);
+    
+    if (logoClicks >= 5) {
+      logoClicks = 0;
+      const pwd = prompt('🔐 Введите пароль администратора:');
+      if (pwd === ADMIN_PASSWORD) {
+        createAdminButton();
+        alert('✅ Режим администратора активирован!');
+      } else {
+        alert('❌ Неверный пароль');
+      }
+    }
+  });
+  // ===== КОНЕЦ ПРОВЕРКИ =====
+
+  const defaultProducts = [
+    { id: 1, img: "1.jpg", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
+    { id: 2, img: "2.jpg", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
+    { id: 3, img: "3.jpg", name: "Клубничное", desc: "С кусочками ягод", price: 150 },
+    { id: 4, img: "4.jpg", name: "Манго-маракуйя", desc: "Тропический микс", price: 170 },
+    { id: 5, img: "5.jpg", name: "Cookie Dough", desc: "С кусочками печенья", price: 180 },
+    { id: 6, img: "6.jpg", name: "Кокос-миндаль", desc: "Веганское, без молока", price: 190 },
+    { id: 7, img: "7.jpg", name: "Бабл-ти", desc: "Холодный чай с тапиокой", price: 220 },
+    { id: 8, img: "8.jpg", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 
