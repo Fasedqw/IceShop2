@@ -18,7 +18,6 @@
   .header h1 { font-size: 28px; color: #4fc3f7; cursor: pointer; user-select: none; }
   .header p { color: #888; margin-top: 4px; font-size: 14px; }
   
-  /* Кнопка админа создаётся через JS, стили здесь */
   .admin-btn {
     position: fixed;
     top: 16px;
@@ -156,10 +155,8 @@
 </head>
 <body>
 
-<!-- КНОПКА АДМИНА УДАЛЕНА ИЗ HTML - создаётся через JS -->
-
 <div class="header">
-  <h1 id="logo">🍦 Ice Shop</h1>
+  <h1 id="logo"> Ice Shop</h1>
   <p>Свежее мороженое с доставкой</p>
 </div>
 
@@ -203,7 +200,7 @@
         <label>💬 Комментарий</label>
         <textarea id="comment" placeholder="Позвонить за 5 минут..."></textarea>
       </div>
-      <button type="submit" class="submit-btn">Оформить заказ 🚀</button>
+      <button type="submit" class="submit-btn">Оформить заказ </button>
     </form>
   </div>
 </div>
@@ -259,35 +256,46 @@
   tg.ready();
   tg.expand();
 
-  const ADMIN_PASSWORD = "admin123"; // ⚠️ ИЗМЕНИ ПАРОЛЬ!
+  const ADMIN_PASSWORD = "admin123";
   const IMG_BASE = "https://github.com/Fasedqw/IceShop2/raw/main/images/";
 
-  // ===== СОЗДАНИЕ КНОПКИ АДМИНА ЧЕРЕЗ JS =====
-  function createAdminButton() {
-    // Проверяем, нет ли уже кнопки
-    if (document.getElementById('adminBtn')) return;
-    
+  // Товары по умолчанию
+  const defaultProducts = [
+    { id: 1, img: "1.jpg", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
+    { id: 2, img: "2.jpg", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
+    { id: 3, img: "3.jpg", name: "Клубничное", desc: "С кусочками ягод", price: 150 },
+    { id: 4, img: "4.jpg", name: "Манго-маракуйя", desc: "Тропический микс", price: 170 },
+    { id: 5, img: "5.jpg", name: "Cookie Dough", desc: "С кусочками печенья", price: 180 },
+    { id: 6, img: "6.jpg", name: "Кокос-миндаль", desc: "Веганское, без молока", price: 190 },
+    { id: 7, img: "7.jpg", name: "Бабл-ти", desc: "Холодный чай с тапиокой", price: 220 },
+    { id: 8, img: "8.jpg", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 130 }
+  ];
+
+  // Загрузка товаров
+  let products = [];
+  try {
+    const saved = localStorage.getItem('iceShopProducts');
+    products = saved ? JSON.parse(saved) : defaultProducts;
+  } catch (e) {
+    products = defaultProducts;
+  }
+  
+  let cart = {};
+  let nextId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+
+  // Проверка на админа
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('admin') === 'true') {
     const btn = document.createElement('button');
-    btn.id = 'adminBtn';
     btn.className = 'admin-btn';
     btn.textContent = '⚙️ Админ';
     btn.onclick = openAdmin;
     document.body.appendChild(btn);
   }
 
-  // ===== ПРОВЕРКА: админ ли это? =====
-  const urlParams = new URLSearchParams(window.location.search);
-  const isAdminMode = urlParams.get('admin') === 'true';
-  
+  // Секретный жест по логотипу
   let logoClicks = 0;
   let logoClickTimer = null;
-  
-  // Показываем кнопку если ?admin=true в URL
-  if (isAdminMode) {
-    createAdminButton();
-  }
-  
-  // Секретный жест: 5 кликов по логотипу за 2 секунды
   document.getElementById('logo').addEventListener('click', function() {
     logoClicks++;
     clearTimeout(logoClickTimer);
@@ -297,21 +305,223 @@
       logoClicks = 0;
       const pwd = prompt('🔐 Введите пароль администратора:');
       if (pwd === ADMIN_PASSWORD) {
-        createAdminButton();
+        if (!document.querySelector('.admin-btn')) {
+          const btn = document.createElement('button');
+          btn.className = 'admin-btn';
+          btn.textContent = '⚙️ Админ';
+          btn.onclick = openAdmin;
+          document.body.appendChild(btn);
+        }
         alert('✅ Режим администратора активирован!');
       } else {
         alert('❌ Неверный пароль');
       }
     }
   });
-  // ===== КОНЕЦ ПРОВЕРКИ =====
 
-  const defaultProducts = [
-    { id: 1, img: "1.jpg", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
-    { id: 2, img: "2.jpg", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
-    { id: 3, img: "3.jpg", name: "Клубничное", desc: "С кусочками ягод", price: 150 },
-    { id: 4, img: "4.jpg", name: "Манго-маракуйя", desc: "Тропический микс", price: 170 },
-    { id: 5, img: "5.jpg", name: "Cookie Dough", desc: "С кусочками печенья", price: 180 },
-    { id: 6, img: "6.jpg", name: "Кокос-миндаль", desc: "Веганское, без молока", price: 190 },
-    { id: 7, img: "7.jpg", name: "Бабл-ти", desc: "Холодный чай с тапиокой", price: 220 },
-    { id: 8, img: "8.jpg", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 
+  function saveProducts() {
+    localStorage.setItem('iceShopProducts', JSON.stringify(products));
+  }
+
+  function renderProducts() {
+    const grid = document.getElementById("products");
+    if (!grid) return;
+    
+    grid.innerHTML = products.map(p => {
+      const qty = cart[p.id] ? cart[p.id].qty : 0;
+      const controls = qty === 0
+        ? '<button class="add-btn" onclick="addToCart(' + p.id + ')">+ В корзину</button>'
+        : '<div class="qty-control">' +
+          '<button onclick="changeQty(' + p.id + ', -1)">−</button>' +
+          '<span>' + qty + '</span>' +
+          '<button onclick="changeQty(' + p.id + ', 1)">+</button>' +
+          '</div>';
+      return '<div class="card">' +
+        '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '">' +
+        '<div class="name">' + p.name + '</div>' +
+        '<div class="desc">' + p.desc + '</div>' +
+        '<div class="bottom">' +
+        '<div class="price">' + p.price + ' ₽</div>' +
+        controls +
+        '</div></div>';
+    }).join("");
+  }
+
+  function addToCart(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    cart[id] = { id: p.id, img: p.img, name: p.name, price: p.price, qty: 1 };
+    updateCart();
+  }
+  
+  function changeQty(id, delta) {
+    if (!cart[id]) return;
+    cart[id].qty += delta;
+    if (cart[id].qty <= 0) delete cart[id];
+    updateCart();
+  }
+  
+  function updateCart() {
+    const items = Object.values(cart);
+    const count = items.reduce((s, i) => s + i.qty, 0);
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    document.getElementById("cartCount").textContent = count;
+    document.getElementById("cartTotal").textContent = total;
+    document.getElementById("cartBar").classList.toggle("show", count > 0);
+    renderProducts();
+  }
+
+  function openCheckout() {
+    const items = Object.values(cart);
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    document.getElementById("cartItems").innerHTML = items.map(i =>
+      '<div class="cart-item">' +
+      '<img src="' + (i.img.startsWith('data:') ? i.img : IMG_BASE + i.img) + '" alt="' + i.name + '">' +
+      '<div class="cart-item-info"><b>' + i.name + '</b> × ' + i.qty + '</div>' +
+      '<span>' + (i.price * i.qty) + ' ₽</span></div>'
+    ).join("");
+    document.getElementById("modalTotal").textContent = total;
+    document.getElementById("checkoutModal").classList.add("show");
+  }
+  
+  function closeCheckout() {
+    document.getElementById("checkoutModal").classList.remove("show");
+  }
+
+  function openAdmin() {
+    document.getElementById("adminModal").classList.add("show");
+    document.getElementById("adminLogin").style.display = "block";
+    document.getElementById("adminContent").style.display = "none";
+    document.getElementById("adminPassword").value = "";
+  }
+  
+  function closeAdmin() {
+    document.getElementById("adminModal").classList.remove("show");
+  }
+  
+  function checkAdminPassword() {
+    const pwd = document.getElementById("adminPassword").value;
+    if (pwd === ADMIN_PASSWORD) {
+      document.getElementById("adminLogin").style.display = "none";
+      document.getElementById("adminContent").style.display = "block";
+      renderProductList();
+    } else {
+      alert("❌ Неверный пароль!");
+    }
+  }
+
+  function addProduct() {
+    const name = document.getElementById("newProductName").value.trim();
+    const desc = document.getElementById("newProductDesc").value.trim();
+    const price = parseInt(document.getElementById("newProductPrice").value);
+    const fileInput = document.getElementById("newProductImage");
+    
+    if (!name || !price) {
+      alert("⚠️ Заполни название и цену!");
+      return;
+    }
+
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        products.push({
+          id: nextId++,
+          img: e.target.result,
+          name: name,
+          desc: desc || "Без описания",
+          price: price
+        });
+        saveProducts();
+        renderProducts();
+        renderProductList();
+        
+        document.getElementById("newProductName").value = "";
+        document.getElementById("newProductDesc").value = "";
+        document.getElementById("newProductPrice").value = "";
+        fileInput.value = "";
+        
+        alert("✅ Товар добавлен!");
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      products.push({
+        id: nextId++,
+        img: "default.jpg",
+        name: name,
+        desc: desc || "Без описания",
+        price: price
+      });
+      saveProducts();
+      renderProducts();
+      renderProductList();
+      
+      document.getElementById("newProductName").value = "";
+      document.getElementById("newProductDesc").value = "";
+      document.getElementById("newProductPrice").value = "";
+      
+      alert("✅ Товар добавлен! (без фото)");
+    }
+  }
+
+  function deleteProduct(id) {
+    if (confirm("Удалить этот товар?")) {
+      products = products.filter(p => p.id !== id);
+      saveProducts();
+      renderProducts();
+      renderProductList();
+    }
+  }
+
+  function renderProductList() {
+    const list = document.getElementById("productList");
+    if (!list) return;
+    list.innerHTML = products.map(p =>
+      '<div class="product-item">' +
+      '<img src="' + (p.img.startsWith('data:') ? p.img : IMG_BASE + p.img) + '" alt="' + p.name + '">' +
+      '<div class="product-item-info">' +
+      '<div class="name">' + p.name + '</div>' +
+      '<div class="price">' + p.price + ' ₽</div>' +
+      '</div>' +
+      '<button class="delete-btn" onclick="deleteProduct(' + p.id + ')">🗑 Удалить</button>' +
+      '</div>'
+    ).join("");
+  }
+
+  function exportProducts() {
+    const dataStr = JSON.stringify(products, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "products.json";
+    a.click();
+    alert("💾 Товары экспортированы!");
+  }
+
+  document.getElementById("orderForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const items = Object.values(cart).map(i => ({
+      id: i.id, name: i.name, price: i.price, qty: i.qty
+    }));
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+    const payload = {
+      action: "order",
+      items: items,
+      total: total,
+      contact: {
+        phone: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        entrance: document.getElementById("entrance").value,
+        floorApt: document.getElementById("floorApt").value,
+        comment: document.getElementById("comment").value
+      }
+    };
+    tg.sendData(JSON.stringify(payload));
+    tg.close();
+  });
+
+  // Инициализация
+  renderProducts();
+</script>
+</body>
+</html>
