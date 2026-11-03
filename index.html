@@ -177,7 +177,6 @@
   <span><span id="cartTotal">0</span> ₽</span>
 </div>
 
-<!-- Модалка оформления заказа -->
 <div class="modal" id="checkoutModal">
   <div class="modal-content">
     <button class="close-btn" onclick="closeCheckout()">✕</button>
@@ -215,7 +214,6 @@
   </div>
 </div>
 
-<!-- Модалка админки -->
 <div class="modal" id="adminModal">
   <div class="modal-content">
     <button class="close-btn" onclick="closeAdmin()">✕</button>
@@ -270,7 +268,6 @@
   const ADMIN_PASSWORD = "admin123";
   const IMG_BASE = "https://github.com/Fasedqw/IceShop2/raw/main/images/";
 
-  // Товары по умолчанию
   const defaultProducts = [
     { id: 1, img: "1.jpg", name: "Ванильное", desc: "Классика в вафельном стаканчике", price: 120 },
     { id: 2, img: "2.jpg", name: "Шоколадное", desc: "Бельгийский шоколад", price: 140 },
@@ -282,27 +279,31 @@
     { id: 8, img: "8.jpg", name: "Сорбет лимон", desc: "Освежающий, 0% жира", price: 130 }
   ];
 
-  // Загрузка товаров с защитой от пустого списка
+  // АВТОМАТИЧЕСКАЯ ПРОВЕРКА: если localStorage пуст или содержит ошибки — используем default
   let products = [];
   try {
     const saved = localStorage.getItem('iceShopProducts');
     if (saved) {
       products = JSON.parse(saved);
-      // Если список пустой или не массив — используем default
       if (!Array.isArray(products) || products.length === 0) {
+        console.log('localStorage пуст или повреждён, используем товары по умолчанию');
         products = defaultProducts;
+        saveProducts();
       }
     } else {
+      console.log('localStorage не найден, используем товары по умолчанию');
       products = defaultProducts;
+      saveProducts();
     }
   } catch (e) {
+    console.error('Ошибка чтения localStorage:', e);
     products = defaultProducts;
+    saveProducts();
   }
   
   let cart = {};
   let nextId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
 
-  // Проверка на админа через URL
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('admin') === 'true') {
     const btn = document.createElement('button');
@@ -312,7 +313,6 @@
     document.body.appendChild(btn);
   }
 
-  // Секретный жест по логотипу (5 кликов)
   let logoClicks = 0;
   let logoClickTimer = null;
   document.getElementById('logo').addEventListener('click', function() {
@@ -499,6 +499,7 @@
   function resetProducts() {
     if (confirm("Сбросить все товары к списку по умолчанию?")) {
       products = JSON.parse(JSON.stringify(defaultProducts));
+      nextId = 9;
       saveProducts();
       renderProducts();
       renderProductList();
@@ -558,7 +559,6 @@
     tg.close();
   });
 
-  // Инициализация
   renderProducts();
 </script>
 </body>
